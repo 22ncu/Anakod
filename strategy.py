@@ -12,13 +12,34 @@ class TradingStrategy:
         self.lookback = lookback
         self.positions = []
         logging.info("TradingStrategy sınıfı başlatıldı.")
-
     def generate_signals(self, df):
         logging.info("Al-sat sinyalleri üretiliyor.")
-        scaled_data = self.scale_data(df)
+        
+        # Scaler'ın beklediği özellikleri doğru sırada seç
+        required_features = self.scaler.feature_names_in_
+        available_features = [feat for feat in required_features if feat in df.columns]
+        
+        if len(available_features) != len(required_features):
+            missing_features = set(required_features) - set(available_features)
+            logging.warning(f"Bazı özellikler eksik. Eksik özellikler: {missing_features}")
+        
+        # Sadece mevcut özellikleri seç
+        df_selected = df[available_features]
+        
+        # Ölçeklendirme uygula
+        scaled_data = self.scale_data(df_selected)
+            
+        # Eksik özellikleri NaN değerlerle doldur
+        for feat in required_features:
+            if feat not in df.columns:
+                df[feat] = np.nan
+        
+        # Özellikleri doğru sırada seç ve ölçeklendir
+        df_selected = df[required_features]
+        scaled_data = self.scale_data(df_selected)
         X, _ = self.prepare_lstm_data(scaled_data)
         predictions = self.model.predict(X)
-        predictions = self.scaler.inverse_transform(predictions.reshape(-1, 1)).flatten()
+        predictions = self.scaler.inverse_transform(np.repeat(predictions.reshape(-1, 1), 5, axis=1))[:, 0]
         df['predicted_close'] = np.concatenate((np.full(self.lookback, np.nan), predictions))
         df['signal'] = np.where(df['predicted_close'] > df['close'], 1, 0)  # 1: Al, 0: Sat
         logging.info("Al-sat sinyalleri üretildi.")
@@ -91,9 +112,21 @@ class TradingStrategy:
             'max_drawdown': max_drawdown.max()
         }
 
-    def scale_data(self, df):
-        features = ['open', 'high', 'low', 'close', 'volume']
-        scaled_data = self.scaler.transform(df[features])
+    def scale_data(self, data):
+        # Scaler'ın beklediği tüm özellikleri içeren boş bir DataFrame oluştur
+        empty_df = pd.DataFrame(columns=self.scaler.feature_names_in_)
+        
+        # Mevcut verileri boş DataFrame'e ekle
+        for col in data.columns:
+            if col in empty_df.columns:
+                empty_df[col] = data[col]
+        
+        # Eksik sütunları 0 ile doldur
+        empty_df = empty_df.fillna(0)
+        
+        # Ölçeklendirmeyi uygula
+        scaled_data = self.scaler.transform(empty_df)
+        
         return scaled_data
 
     def prepare_lstm_data(self, data):
