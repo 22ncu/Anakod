@@ -11,7 +11,7 @@ import os
 # Attention Layer sınıfı
 class AttentionLayer(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
-        super(AttentionLayer, self).__init__(**kwargs)
+        super(AttentionLayer, self).init(**kwargs)
 
     def build(self, input_shape):
         self.W = self.add_weight(shape=(input_shape[-1], input_shape[-1]),
@@ -31,7 +31,7 @@ class AttentionLayer(tf.keras.layers.Layer):
         weighted_input = x * tf.expand_dims(a_it, -1)
         return tf.reduce_sum(weighted_input, axis=1)
 
-# Verilerin ölçeklendirilmesi (scaling)
+# Verilerin ölçeklendirilmesi
 def scale_data(df, scaler=None):
     logging.info("Verilerin ölçeklendirilmesi başlatılıyor.")
     features = ['close', 'bb_mavg', 'bb_high', 'bb_low', 'macd', 'macd_signal', 'macd_diff',
@@ -105,10 +105,10 @@ def train_model(model, X_train, y_train, X_test, y_test):
     # Model checkpoint ve early stopping callback'lerini ayarlama
     checkpoint_callback = ModelCheckpoint(
         filepath=checkpoint_filepath,
-        save_weights_only=True,  # Sadece model ağırlıklarını kaydeder
+        save_weights_only=True,
         monitor='val_loss',
         mode='min',
-        save_best_only=False  # Tüm epoch'ları kaydet
+        save_best_only=False
     )
     
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
@@ -138,3 +138,4 @@ def train_model(model, X_train, y_train, X_test, y_test):
     
     logging.info("Model eğitimi tamamlandı.")
     return best_model
+
