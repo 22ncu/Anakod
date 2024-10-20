@@ -22,8 +22,8 @@ class Backtester:
 
     def run(self):
         logging.info("Backtesting başlatılıyor.")
-        df = self.strategy.generate_signals(self.data)
-        
+        df = self.strategy.generate_signals(self.data[self.scaler.feature_names_in_])
+       
         balance = self.initial_balance
         position = 0
         entry_price = 0
